@@ -1,0 +1,4 @@
+{
+    "python.pythonPath": "/home/takeshi/.pyenv/versions/gym_drone_pybullet/bin/python",
+    "python.formatting.provider": "autopep8"
+}
