@@ -21,9 +21,10 @@ import datetime
 from train import PPO, reward_fn
 
 if __name__ == "__main__":
-    env = gym.make("takeoff-aviary-v0", gui=True)
+    env = gym.make("takeoff-aviary-v0",
+                   initial_xyzs=[[0.0, 0.0, 0.0]], gui=True)
     checkpoint = torch.load(
-        "/home/takeshi/gym-pybullet-drones/models/0317_19:04:53/102400.pt")
+        "/home/takeshi/gym-pybullet-drones/my_codes/En_PPO/models/0317_12_02_47/20480.pt")
     obs_dim = 7  # z, ang(3), gyr(3)
     act_dim = env.action_space.high.size
 
@@ -54,7 +55,7 @@ if __name__ == "__main__":
         obs = next_obs
 
         rew, angle_c, gyro_c, action_c, height_c = reward_fn(
-            obs.reshape((1, 12)), act.reshape((1, 4)))
+            obs.reshape((1, 12)), act.reshape((1, 4)), episode_max_steps)
         episode_return += rew
         total_angle_c += angle_c
         total_gyro_c += gyro_c

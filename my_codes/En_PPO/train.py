@@ -23,22 +23,22 @@ def angle_normalize(x):
     return ((x + np.pi) % (2 * np.pi)) - np.pi
 
 
-def reward_fn(obses, acts):
+def reward_fn(obses, acts, episode_max_steps):
     assert obses.shape[1] == 12 and acts.shape[1] == 4
     pos, ang, vel, gyr = parse_obses(obses)
     cost = np.zeros((pos.shape[0], ))
-    angle = np.sum(ang[:, 0:2] ** 2, axis=1)
-    cost += angle
-    gyro = np.sum(gyr ** 2, axis=1)
+    angle = np.sum(ang[:, 0:2] ** 2, axis=1) / episode_max_steps
+    cost += angle * 10.0
+    gyro = np.sum(gyr ** 2, axis=1) / episode_max_steps
     # gyro = np.sum(gyr ** 2, axis=1) * 0.5
-    cost += gyro * 0.001
+    cost += gyro * 0.01
     # action = np.sum(acts ** 2, axis=1) * 0.001
-    action = np.sum(acts ** 2, axis=1)
-    cost += action * 0.0001
+    action = np.sum(acts ** 2, axis=1) / episode_max_steps
+    cost += action * 0.01
     # 高さに関して連続的な報酬を与えるように修正
     z = pos[:, 2]
-    height = np.where(z < 0.3, -1. / 0.3 * z + 1.0, 0.0)
-    cost += height * 0.01
+    height = np.where(z < 0.3, -1. / 0.3 * z + 1.0, 0.0) / episode_max_steps
+    cost += height * 1.0
     return -cost, angle, gyro, action, height
 
 # ダイナミクスモデル
@@ -346,16 +346,34 @@ class PPO:
 
 def evaluate_policy(total_steps, test_episodes=10):
     avg_test_return = 0.
+    avg_total_angle_c = 0.
+    avg_total_gyro_c = 0.
+    avg_total_action_c = 0.
+    avg_total_height_c = 0.
     for i in range(test_episodes):
         episode_return = 0.
+        total_angle_c = 0.
+        total_gyro_c = 0.
+        total_action_c = 0.
+        total_height_c = 0.
         obs = env.reset()
         for _ in range(episode_max_steps):
             act = policy.get_action(obs, test=True)
-            next_obs, rew, _, _ = env.step(act)
-            episode_return += rew
+            next_obs, _, _, _ = env.step(act)
+            rews = reward_fn(obs.reshape((1, 12)),
+                             act.reshape((1, 4)), episode_max_steps)
+            episode_return += rews[0]
+            total_angle_c += rews[1]
+            total_gyro_c += rews[2]
+            total_action_c += rews[3]
+            total_height_c += rews[4]
             obs = next_obs
-        avg_test_return += episode_return
-    return avg_test_return / test_episodes
+        avg_test_return += episode_return / test_episodes
+        avg_total_angle_c += total_angle_c / test_episodes
+        avg_total_gyro_c += total_gyro_c / test_episodes
+        avg_total_action_c += total_action_c / test_episodes
+        avg_total_height_c += total_height_c / test_episodes
+    return avg_test_return, avg_total_angle_c, avg_total_gyro_c, avg_total_action_c, avg_total_height_c
 
 
 def collect_transitions_real_env():
@@ -388,7 +406,7 @@ def collect_transitions_sim_env():
             act = act.cpu().numpy()[0]
             # ダイナミクスモデルを用いて次状態を予測
             next_obs = predict_next_state(obs, act)
-            rew = reward_fn(obs, act)[0]
+            rew = reward_fn(obs, act, episode_max_steps)[0]
             episode_buffer.add(obs=obs, act=act, next_obs=next_obs, rew=rew,
                                done=False, logp=logp, val=val)
             obs = next_obs
@@ -458,7 +476,7 @@ def evaluate_current_return(init_states):
                 acts[i], env.action_space.low, env.action_space.high)
             next_obses[i] = predict_next_state(
                 obses[i], env_act, idx=model_idx)
-        returns += reward_fn(obses, acts)[0]
+        returns += reward_fn(obses, acts, episode_max_steps)[0]
         obses = next_obses
 
     return returns
@@ -482,7 +500,7 @@ if __name__ == "__main__":
             print("iter={0: 3d} total reward: {1: 4.4f}".format(
                 episode_idx, total_rew))
 
-    env = gym.make("takeoff-aviary-v0")
+    env = gym.make("takeoff-aviary-v0", initial_xyzs=[[0.0, 0.0, 0.0]])
 
     # obs_dim = env.observation_space.high.size
     obs_dim = 7  # z, ang(3), gyr(3)
@@ -539,7 +557,7 @@ if __name__ == "__main__":
     rew_list = []
     total_step_list = []
     save_path = os.path.join(
-        __file__, 'models', datetime.datetime.now().strftime('%m%d_%H:%M:%S'))
+        os.path.dirname(os.path.abspath(__file__)), 'models', datetime.datetime.now().strftime('%m%d_%H:%M:%S'))
     os.makedirs(save_path, exist_ok=True)
 
     while True:
@@ -583,10 +601,12 @@ if __name__ == "__main__":
 
         # 実環境での方策評価
         if total_steps // policy.horizon % 10 == 0:
-            avg_test_return = evaluate_policy(total_steps, test_episodes)
+            rew_and_costs = evaluate_policy(total_steps, test_episodes)
             print("Evaluation Total Steps: {0: 7} Average Reward {1: 5.4f} over {2: 2} episodes".format(
-                total_steps, avg_test_return, test_episodes))
-            rew_list.append(avg_test_return)
+                total_steps, rew_and_costs[0][0], test_episodes))
+            print("angle: {0: 4.4f} gyro: {1: 4.4f} action: {2: 4.4f} height: {3: 4.4f}".format(
+                rew_and_costs[1][0], rew_and_costs[2][0], rew_and_costs[3][0], rew_and_costs[4][0]))
+            rew_list.append(rew_and_costs[0])
             total_step_list.append(total_steps)
             filename = str(total_steps) + '.pt'
             torch.save({

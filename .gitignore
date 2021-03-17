@@ -430,4 +430,6 @@ TSWLatexianTemp*
 # Uncomment the next line to have this generated file ignored.
 #*Notes.bib
 
-./my_codes/*/models/
+./my_codes/En_PPO/models/
+./my_codes/RS_smooth_height/models/
+./my_codes/RS_sparse_height/models/

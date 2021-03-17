@@ -71,7 +71,8 @@ if __name__ == "__main__":
     dynamics_model.model.load_state_dict(checkpoint["model_params"])
     episode_max_steps = checkpoint["episode_max_steps"]
 
-    env = gym.make("takeoff-aviary-v0", gui=True)
+    env = gym.make("takeoff-aviary-v0",
+                   initial_xyzs=[[0.0, 0.0, 0.0]], gui=True)
 
     num_trial = 5
     policy = RandomPolicy(

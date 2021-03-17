@@ -174,7 +174,7 @@ if __name__ == "__main__":
             print("iter={0: 3d} total reward: {1: 4.4f}".format(
                 episode_idx, total_rew))
 
-    env = gym.make("takeoff-aviary-v0")
+    env = gym.make("takeoff-aviary-v0", initial_xyzs=[[0.0, 0.0, 0.0]])
 
     # obs_dim = env.observation_space.high.size
     obs_dim = 7  # z, ang(3), gyr(3)
@@ -226,7 +226,7 @@ if __name__ == "__main__":
     rew_list = []
     loss_list = []
     save_path = os.path.join(
-        __file__, 'models', datetime.datetime.now().strftime('%m%d_%H:%M:%S'))
+        os.path.dirname(os.path.abspath(__file__)), 'models', datetime.datetime.now().strftime('%m%d_%H:%M:%S'))
     os.makedirs(save_path, exist_ok=True)
 
     for episode_idx in range(n_episodes):

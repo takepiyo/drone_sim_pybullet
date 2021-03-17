@@ -225,7 +225,7 @@ if __name__ == "__main__":
     rew_list = []
     loss_list = []
     save_path = os.path.join(
-        __file__, 'models', datetime.datetime.now().strftime('%m%d_%H:%M:%S'))
+        os.path.dirname(os.path.abspath(__file__)), 'models', datetime.datetime.now().strftime('%m%d_%H:%M:%S'))
     os.makedirs(save_path, exist_ok=True)
 
     for episode_idx in range(n_episodes):
