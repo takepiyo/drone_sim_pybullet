@@ -1,22 +1,23 @@
-import datetime
-import os
-from gym_pybullet_drones.utils.utils import sync, str2bool
-from gym_pybullet_drones.envs.single_agent_rl.TakeoffAviary import TakeoffAviary
-from gym_pybullet_drones.utils.Logger import Logger
-from stable_baselines3.common.env_checker import check_env
-from stable_baselines3.a2c import MlpPolicy
-from stable_baselines3 import A2C
-from torch import nn
-import torch
-from cpprb import ReplayBuffer
-import gnwrapper
-import gym
-from scipy.signal import lfilter
-from numpy.core.fromnumeric import mean
-import numpy as np
 import math
-import sys
-# sys.path.append("/content/drive/MyDrive/Colab Notebooks/my_modules/")
+import numpy as np
+from numpy.core.fromnumeric import mean
+from scipy.signal import lfilter
+import gym
+import gnwrapper
+from cpprb import ReplayBuffer
+import torch
+from torch import nn
+
+from stable_baselines3 import A2C
+from stable_baselines3.a2c import MlpPolicy
+from stable_baselines3.common.env_checker import check_env
+
+from gym_pybullet_drones.utils.Logger import Logger
+from gym_pybullet_drones.envs.single_agent_rl.TakeoffAviary import TakeoffAviary
+from gym_pybullet_drones.utils.utils import sync, str2bool
+
+import os
+import datetime
 
 
 def angle_normalize(x):
@@ -224,7 +225,7 @@ if __name__ == "__main__":
     rew_list = []
     loss_list = []
     save_path = os.path.join(
-        './models', datetime.datetime.now().strftime('%m%d_%H:%M:%S'))
+        __file__, 'models', datetime.datetime.now().strftime('%m%d_%H:%M:%S'))
     os.makedirs(save_path, exist_ok=True)
 
     for episode_idx in range(n_episodes):
