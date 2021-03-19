@@ -102,6 +102,9 @@ if __name__ == "__main__":
                                               n_eval_episodes=10
                                               )
     print("\n\n\nMean reward ", mean_reward, " +- ", std_reward, "\n\n")
+    with np.load(ARGS.exp+'/evaluations.npz') as data:
+        for j in range(data['timesteps'].shape[0]):
+            print(str(data['timesteps'][j])+","+str(data['results'][j][0][0]))
 
     #### Show, record a video, and log the model's performance #
     test_env = gym.make(env_name,
