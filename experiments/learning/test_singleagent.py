@@ -9,37 +9,38 @@ To run the script, type in a terminal:
     $ python test_singleagent.py --exp ./results/save-<env>-<algo>-<obs>-<act>-<time_date>
 
 """
+import shared_constants
+from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import ActionType, ObservationType
+from gym_pybullet_drones.envs.single_agent_rl.TuneAviary import TuneAviary
+from gym_pybullet_drones.envs.single_agent_rl.FlyThruGateAviary import FlyThruGateAviary
+from gym_pybullet_drones.envs.single_agent_rl.HoverAviary import HoverAviary
+from gym_pybullet_drones.envs.single_agent_rl.TakeoffAviary import TakeoffAviary
+from gym_pybullet_drones.utils.Logger import Logger
+from gym_pybullet_drones.utils.utils import sync
+from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.td3 import CnnPolicy as td3ddpgCnnPolicy
+from stable_baselines3.td3 import MlpPolicy as td3ddpgMlpPolicy
+from stable_baselines3.sac import CnnPolicy as sacCnnPolicy
+from stable_baselines3.sac.policies import SACPolicy as sacMlpPolicy
+from stable_baselines3.common.policies import ActorCriticCnnPolicy as a2cppoCnnPolicy
+from stable_baselines3.common.policies import ActorCriticPolicy as a2cppoMlpPolicy
+from stable_baselines3 import DDPG
+from stable_baselines3 import TD3
+from stable_baselines3 import SAC
+from stable_baselines3 import PPO
+from stable_baselines3 import A2C
+from stable_baselines3.common.env_checker import check_env
+import torch
+import gym
+import numpy as np
+import re
+import argparse
+from datetime import datetime
 import os
 import time
-from datetime import datetime
-import argparse
-import re
-import numpy as np
-import gym
-import torch
-from stable_baselines3.common.env_checker import check_env
-from stable_baselines3 import A2C
-from stable_baselines3 import PPO
-from stable_baselines3 import SAC
-from stable_baselines3 import TD3
-from stable_baselines3 import DDPG
-from stable_baselines3.common.policies import ActorCriticPolicy as a2cppoMlpPolicy
-from stable_baselines3.common.policies import ActorCriticCnnPolicy as a2cppoCnnPolicy
-from stable_baselines3.sac.policies import SACPolicy as sacMlpPolicy
-from stable_baselines3.sac import CnnPolicy as sacCnnPolicy
-from stable_baselines3.td3 import MlpPolicy as td3ddpgMlpPolicy
-from stable_baselines3.td3 import CnnPolicy as td3ddpgCnnPolicy
-from stable_baselines3.common.evaluation import evaluate_policy
+import sys
+sys.path.append('stable_baselines3/')
 
-from gym_pybullet_drones.utils.utils import sync
-from gym_pybullet_drones.utils.Logger import Logger
-from gym_pybullet_drones.envs.single_agent_rl.TakeoffAviary import TakeoffAviary
-from gym_pybullet_drones.envs.single_agent_rl.HoverAviary import HoverAviary
-from gym_pybullet_drones.envs.single_agent_rl.FlyThruGateAviary import FlyThruGateAviary
-from gym_pybullet_drones.envs.single_agent_rl.TuneAviary import TuneAviary
-from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import ActionType, ObservationType
-
-import shared_constants
 
 if __name__ == "__main__":
 
