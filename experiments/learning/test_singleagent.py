@@ -44,8 +44,10 @@ import shared_constants
 if __name__ == "__main__":
 
     #### Define and parse (optional) arguments for the script ##
-    parser = argparse.ArgumentParser(description='Single agent reinforcement learning example script using TakeoffAviary')
-    parser.add_argument('--exp',                           type=str,            help='Help (default: ..)', metavar='')
+    parser = argparse.ArgumentParser(
+        description='Single agent reinforcement learning example script using TakeoffAviary')
+    parser.add_argument('--exp',                           type=str,
+                        help='Help (default: ..)', metavar='')
     ARGS = parser.parse_args()
 
     #### Load the model from file ##############################
@@ -70,7 +72,8 @@ if __name__ == "__main__":
 
     #### Parameters to recreate the environment ################
     env_name = ARGS.exp.split("-")[1]+"-aviary-v0"
-    OBS = ObservationType.KIN if ARGS.exp.split("-")[3] == 'kin' else ObservationType.RGB
+    OBS = ObservationType.KIN if ARGS.exp.split(
+        "-")[3] == 'kin' else ObservationType.RGB
     if ARGS.exp.split("-")[4] == 'rpm':
         ACT = ActionType.RPM
     elif ARGS.exp.split("-")[4] == 'dyn':
@@ -113,22 +116,23 @@ if __name__ == "__main__":
                     )
     obs = test_env.reset()
     start = time.time()
-    for i in range(6*int(test_env.SIM_FREQ/test_env.AGGR_PHY_STEPS)): # Up to 6''
+    for i in range(6*int(test_env.SIM_FREQ/test_env.AGGR_PHY_STEPS)):  # Up to 6''
         action, _states = model.predict(obs,
-                                        deterministic=True # OPTIONAL 'deterministic=False'
+                                        deterministic=True  # OPTIONAL 'deterministic=False'
                                         )
         obs, reward, done, info = test_env.step(action)
         test_env.render()
-        if OBS==ObservationType.KIN:
+        if OBS == ObservationType.KIN:
             logger.log(drone=0,
                        timestamp=i/test_env.SIM_FREQ,
-                       state= np.hstack([obs[0:3], np.zeros(4), obs[3:15],  np.resize(action, (4))]),
+                       state=np.hstack(
+                           [obs[0:3], obs[3:15],  np.resize(action, (4))]),
                        control=np.zeros(12)
                        )
         sync(np.floor(i*test_env.AGGR_PHY_STEPS), start, test_env.TIMESTEP)
         # if done: obs = test_env.reset() # OPTIONAL EPISODE HALT
     test_env.close()
-    logger.save_as_csv("sa") # Optional CSV save
+    logger.save_as_csv("sa")  # Optional CSV save
     logger.plot()
 
     # with np.load(ARGS.exp+'/evaluations.npz') as data:

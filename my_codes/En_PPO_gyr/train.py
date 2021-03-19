@@ -3,6 +3,7 @@ import os
 from gym_pybullet_drones.utils.utils import sync, str2bool
 from gym_pybullet_drones.envs.single_agent_rl.TakeoffAviary import TakeoffAviary
 from gym_pybullet_drones.utils.Logger import Logger
+from gym_pybullet_drones.control.Reference2Rpm import Reference_to_Rpm
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.a2c import MlpPolicy
 from stable_baselines3 import A2C
@@ -27,18 +28,18 @@ def reward_fn(obses, acts, episode_max_steps):
     assert obses.shape[1] == 12 and acts.shape[1] == 4
     pos, ang, vel, gyr = parse_obses(obses)
     cost = np.zeros((pos.shape[0], ))
-    angle = np.sum(ang[:, 0:2] ** 2, axis=1) / episode_max_steps
-    cost += angle * 10.0
-    gyro = np.sum(gyr ** 2, axis=1) / episode_max_steps
+    angle = np.sum(ang[:, 0:2] ** 2, axis=1)
+    # cost += angle
+    gyro = np.clip(np.sum(gyr ** 2, axis=1) / 3.0, 0.0, 1.0)
     # gyro = np.sum(gyr ** 2, axis=1) * 0.5
-    cost += gyro * 0.01
+    cost += gyro
     # action = np.sum(acts ** 2, axis=1) * 0.001
-    action = np.sum(acts ** 2, axis=1) / episode_max_steps
-    cost += action * 0.01
+    action = np.sum(acts ** 2, axis=1)
+    # cost += action * 0.01
     # 高さに関して連続的な報酬を与えるように修正
     z = pos[:, 2]
-    height = np.where(z < 0.3, -1. / 0.3 * z + 1.0, 0.0) / episode_max_steps
-    cost += height * 1.0
+    height = np.where(z < 0.3, -1. / 0.3 * z + 1.0, 0.0)
+    # cost += height * 1.0
     return -cost, angle, gyro, action, height
 
 # ダイナミクスモデル
@@ -197,6 +198,7 @@ class GaussianActor(nn.Module):
 
     def forward(self, states):
         states = self._format_shape(states)
+
         return torch.tanh(self.net(states))
 
     def sample(self, states):
@@ -217,7 +219,7 @@ class GaussianActor(nn.Module):
         states = gyr
         assert states.shape[1] == 3
         states = torch.tensor(states, dtype=torch.float,
-                              device=self.device).unsqueeze_(0)
+                              device=self.device)
         return states
 
 
@@ -248,7 +250,7 @@ class Critic(nn.Module):
         states = gyr
         assert states.shape[1] == 3
         states = torch.tensor(states, dtype=torch.float,
-                              device=self.device).unsqueeze_(0)
+                              device=self.device)
         return states
 
 
@@ -256,6 +258,7 @@ class PPO:
     def __init__(self,
                  state_shape,
                  action_shape,
+                 mixing_obj,
                  max_action=1.,
                  device=torch.device('cpu'),
                  seed=0,
@@ -288,19 +291,24 @@ class PPO:
         self.coef_ent = coef_ent
         self.max_grad_norm = max_grad_norm
 
+        self.mixing = mixing_obj
+
     def get_action(self, state, test=False):
         with torch.no_grad():
             if test:
                 action = self.actor(state)
             else:
                 action, _ = self.actor.sample(state)
-        return action.cpu().numpy()[0] * self.max_action
+        rpm = self.mixing.get_rpm(action.cpu().numpy() * self.max_action)
+        return rpm
 
     def get_action_and_val(self, state):
         with torch.no_grad():
             action, logp = self.actor.sample(state)
             value = self.critic(state)
-        return action * self.max_action, logp, value
+            action = self.mixing.get_rpm(
+                action.to('cpu').detach().numpy() * self.max_action)
+        return action, logp, value
 
     def train(self, states, actions, advantages, logp_olds, returns):
         states = torch.from_numpy(states).float()
@@ -400,7 +408,6 @@ def collect_transitions_sim_env():
         episode_return = 0.
         for i in range(episode_max_steps):
             act, logp, val = policy.get_action_and_val(obs)
-            act = act.cpu().numpy()[0]
             # ダイナミクスモデルを用いて次状態を予測
             next_obs = predict_next_state(obs, act)
             rew = reward_fn(obs, act, episode_max_steps)[0]
@@ -498,10 +505,12 @@ if __name__ == "__main__":
                 episode_idx, total_rew))
 
     env = gym.make("takeoff-aviary-v0", initial_xyzs=[[0.0, 0.0, 0.0]])
+    ref_to_rpm = Reference_to_Rpm()
 
     # obs_dim = env.observation_space.high.size
     obs_dim = 3  # gyr(3)
     act_dim = env.action_space.high.size
+    torques_dim = 3
 
     n_dynamics_model = 5
     n_eval_episodes_per_model = 5
@@ -510,8 +519,9 @@ if __name__ == "__main__":
         input_dim=obs_dim + act_dim, output_dim=obs_dim) for _ in range(n_dynamics_model)]
 
     policy = PPO((obs_dim, ),
-                 (act_dim, ),
-                 max_action=env.action_space.high[0])
+                 (torques_dim, ),
+                 mixing_obj=ref_to_rpm,
+                 max_action=3200)
 
     # 10Kデータ分 (s, a, s') を保存できるリングバッファを用意します
     rb_dict = {
