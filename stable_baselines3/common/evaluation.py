@@ -82,7 +82,8 @@ def evaluate_policy(
         episode_reward = 0.0
         episode_length = 0
         while not done:
-            action, state = model.predict(obs, state=state, deterministic=deterministic)
+            action, state = model.predict(
+                obs, state=state, deterministic=deterministic)
             obs, reward, done, info = env.step(action)
             episode_reward += reward
             if callback is not None:
@@ -90,7 +91,7 @@ def evaluate_policy(
             episode_length += 1
             if render:
                 env.render()
-
+        # print("\n\nEach cost: ", env.each_costs)
         if is_monitor_wrapped:
             # Do not trust "done" with episode endings.
             # Remove vecenv stacking (if any)

@@ -63,7 +63,6 @@ class HoverAviary(BaseSingleAgentAviary):
                          act=act,
                          rew=rew
                          )
-
     ################################################################################
 
     def _computeReward(self):
@@ -78,13 +77,14 @@ class HoverAviary(BaseSingleAgentAviary):
         state = self._getDroneStateVector(0)
         def_cost = -1 * np.linalg.norm(np.array([0, 0, 1])-state[0:3])**2
         if self.REW_TYPE == RewardType.DEF:
-            _ = None
-            return def_cost, _
+            return def_cost
         elif self.REW_TYPE == RewardType.ORI_1:
             gyr = state[13:16]
             gyr_cost = -1 * \
                 np.linalg.norm(np.array([0.0, 0.0, 0.0]) - gyr) ** 2
-            return def_cost + gyr_cost * 0.05, {"def_cost": def_cost, "gyr_cost": gyr_cost}
+            self.each_costs["def_cost"] += def_cost
+            self.each_costs["gyr_cost"] += gyr_cost
+            return def_cost + gyr_cost * 0.05
         else:
             print('[ERROR] not exsist this reward type in this model')
             ################################################################################

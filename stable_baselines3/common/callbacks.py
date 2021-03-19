@@ -233,7 +233,8 @@ class CheckpointCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         if self.n_calls % self.save_freq == 0:
-            path = os.path.join(self.save_path, f"{self.name_prefix}_{self.num_timesteps}_steps")
+            path = os.path.join(
+                self.save_path, f"{self.name_prefix}_{self.num_timesteps}_steps")
             self.model.save(path)
             if self.verbose > 1:
                 print(f"Saving model checkpoint to {path}")
@@ -292,7 +293,8 @@ class EvalCallback(EventCallback):
         verbose: int = 1,
         warn: bool = True,
     ):
-        super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
+        super(EvalCallback, self).__init__(
+            callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.eval_freq = eval_freq
         self.best_mean_reward = -np.inf
@@ -302,8 +304,8 @@ class EvalCallback(EventCallback):
         self.warn = warn
 
         # Convert to VecEnv for consistency
-        if not isinstance(eval_env, VecEnv):
-            eval_env = DummyVecEnv([lambda: eval_env])
+        # if not isinstance(eval_env, VecEnv):
+        #     eval_env = DummyVecEnv([lambda: eval_env])
 
         if isinstance(eval_env, VecEnv):
             assert eval_env.num_envs == 1, "You must pass only one environment for evaluation"
@@ -324,7 +326,8 @@ class EvalCallback(EventCallback):
     def _init_callback(self) -> None:
         # Does not work in some corner cases, where the wrapper is not the same
         if not isinstance(self.training_env, type(self.eval_env)):
-            warnings.warn("Training and eval env are not of the same type" f"{self.training_env} != {self.eval_env}")
+            warnings.warn(
+                "Training and eval env are not of the same type" f"{self.training_env} != {self.eval_env}")
 
         # Create folders if needed
         if self.best_model_save_path is not None:
@@ -390,13 +393,18 @@ class EvalCallback(EventCallback):
                     **kwargs,
                 )
 
-            mean_reward, std_reward = np.mean(episode_rewards), np.std(episode_rewards)
-            mean_ep_length, std_ep_length = np.mean(episode_lengths), np.std(episode_lengths)
+            mean_reward, std_reward = np.mean(
+                episode_rewards), np.std(episode_rewards)
+            mean_ep_length, std_ep_length = np.mean(
+                episode_lengths), np.std(episode_lengths)
             self.last_mean_reward = mean_reward
 
             if self.verbose > 0:
-                print(f"Eval num_timesteps={self.num_timesteps}, " f"episode_reward={mean_reward:.2f} +/- {std_reward:.2f}")
-                print(f"Episode length: {mean_ep_length:.2f} +/- {std_ep_length:.2f}")
+                print(
+                    f"Eval num_timesteps={self.num_timesteps}, " f"episode_reward={mean_reward:.2f} +/- {std_reward:.2f}")
+                print(
+                    f"Episode length: {mean_ep_length:.2f} +/- {std_ep_length:.2f}")
+                print("Each cost: ", self.eval_env.each_costs)
             # Add to current Logger
             self.logger.record("eval/mean_reward", float(mean_reward))
             self.logger.record("eval/mean_ep_length", mean_ep_length)
@@ -411,7 +419,8 @@ class EvalCallback(EventCallback):
                 if self.verbose > 0:
                     print("New best mean reward!")
                 if self.best_model_save_path is not None:
-                    self.model.save(os.path.join(self.best_model_save_path, "best_model"))
+                    self.model.save(os.path.join(
+                        self.best_model_save_path, "best_model"))
                 self.best_mean_reward = mean_reward
                 # Trigger callback if needed
                 if self.callback is not None:
@@ -448,7 +457,8 @@ class StopTrainingOnRewardThreshold(BaseCallback):
     def _on_step(self) -> bool:
         assert self.parent is not None, "``StopTrainingOnMinimumReward`` callback must be used " "with an ``EvalCallback``"
         # Convert np.bool_ to bool, otherwise callback() is False won't work
-        continue_training = bool(self.parent.best_mean_reward < self.reward_threshold)
+        continue_training = bool(
+            self.parent.best_mean_reward < self.reward_threshold)
         if self.verbose > 0 and not continue_training:
             print(
                 f"Stopping training because the mean reward {self.parent.best_mean_reward:.2f} "
@@ -503,7 +513,8 @@ class StopTrainingOnMaxEpisodes(BaseCallback):
         # Checking for both 'done' and 'dones' keywords because:
         # Some models use keyword 'done' (e.g.,: SAC, TD3, DQN, DDPG)
         # While some models use keyword 'dones' (e.g.,: A2C, PPO)
-        done_array = np.array(self.locals.get("done") if self.locals.get("done") is not None else self.locals.get("dones"))
+        done_array = np.array(self.locals.get("done") if self.locals.get(
+            "done") is not None else self.locals.get("dones"))
         self.n_episodes += np.sum(done_array).item()
 
         continue_training = self.n_episodes < self._total_max_episodes

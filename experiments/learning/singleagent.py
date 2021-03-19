@@ -216,7 +216,8 @@ if __name__ == "__main__":
         eval_env = gym.make(env_name,
                             aggregate_phy_steps=shared_constants.AGGR_PHY_STEPS,
                             obs=ARGS.obs,
-                            act=ARGS.act
+                            act=ARGS.act,
+                            rew=ARGS.rew
                             )
     elif ARGS.obs == ObservationType.RGB:
         if env_name == "takeoff-aviary-v0":
@@ -259,7 +260,7 @@ if __name__ == "__main__":
                                  deterministic=True,
                                  render=False
                                  )
-    model.learn(total_timesteps=35000,  # int(1e12),
+    model.learn(total_timesteps=2000,  # int(1e12),
                 callback=eval_callback,
                 log_interval=100,
                 )
