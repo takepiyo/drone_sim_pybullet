@@ -40,6 +40,8 @@ class RewardType(Enum):
     """Reward type enumeration class."""
     DEF = "def"  # default reward func
     ORI_1 = "ori_1"     # original reward func 1
+    ORI_2 = "ori_2"     # original reward func 2
+    ORI_3 = "ori_3"     # original reward func 3
 
 ################################################################################
 

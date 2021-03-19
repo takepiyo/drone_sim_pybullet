@@ -63,6 +63,7 @@ class TakeoffAviary(BaseSingleAgentAviary):
                          act=act,
                          rew=rew
                          )
+        self.pre_act = np.zeros((1, 4))
 
     ################################################################################
 
@@ -76,16 +77,49 @@ class TakeoffAviary(BaseSingleAgentAviary):
 
         """
         state = self._getDroneStateVector(0)
-        def_cost = -5 if state[2] < 0.02 else -1 / (10*state[2])
+        gyr = state[13:16]
         if self.REW_TYPE == RewardType.DEF:
+            def_cost = -5 if state[2] < 0.02 else -1 / (10*state[2])
             return def_cost
         elif self.REW_TYPE == RewardType.ORI_1:
-            gyr = state[13:16]
             gyr_cost = -1 * \
                 np.linalg.norm(np.array([0.0, 0.0, 0.0]) - gyr) ** 2
+            def_cost = -5 if state[2] < 0.02 else -1 / (10*state[2])
             self.each_costs["def_cost"] += def_cost
             self.each_costs["gyr_cost"] += gyr_cost
-            return def_cost + gyr_cost * 0.05
+            return def_cost + gyr_cost * 0.001
+        elif self.REW_TYPE == RewardType.ORI_2:
+            if state[2] < 0.02:
+                height_cost = -5.0
+            elif state[2] < 1.0:
+                height_cost = -1 / (10*state[2])
+            else:
+                height_cost = 0.0
+            self.each_costs["height_cost"] += height_cost
+            gyr_cost = -1 * \
+                np.clip(
+                    (np.linalg.norm(np.array([0.0, 0.0, 0.0]) - gyr) ** 2) / 3.0, 0.0, 1.0)
+            self.each_costs["gyr_cost"] += gyr_cost
+            return height_cost + gyr_cost
+        elif self.REW_TYPE == RewardType.ORI_3:
+            if state[2] < 0.02:
+                height_cost = -5.0
+            elif state[2] < 0.5:
+                height_cost = -1 / (10*state[2])
+            else:
+                height_cost = 0.0
+            self.each_costs["height_cost"] += height_cost
+            gyr_cost = -1 * \
+                np.clip(
+                    (np.linalg.norm(np.array([0.0, 0.0, 0.0]) - gyr) ** 2) / 3.0, 0.0, 1.0)
+            self.each_costs["gyr_cost"] += gyr_cost
+
+            act = state[16:20]
+            act_diff_cost = -1 * \
+                np.clip((np.linalg.norm(act - self.pre_act) ** 2) / 4.0, 0.0, 1.0)
+            self.each_costs['act_diff_cost'] += act_diff_cost
+            self.pre_act = act
+            return height_cost + gyr_cost + act_diff_cost * 0.1
         else:
             print('[ERROR] not exsist this reward type in this model')
     ################################################################################

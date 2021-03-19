@@ -290,7 +290,8 @@ class BaseAviary(gym.Env):
         #### Start video recording #################################
         self._startVideoRecording()
         #### Return the initial observation ########################
-        self.each_costs = {"def_cost": 0.0, "gyr_cost": 0.0}
+        self.each_costs = {"def_cost": 0.0,
+                           "gyr_cost": 0.0, "height_cost": 0.0, "act_diff_cost": 0.0}
         # declare cost dict
         return self._computeObs()
 
