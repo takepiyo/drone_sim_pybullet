@@ -269,6 +269,8 @@ class BaseAviary(gym.Env):
         self._updateAndStoreKinematicInformation()
         #### Start video recording #################################
         self._startVideoRecording()
+        # declare cost dict
+        self.each_costs = {}
 
     ################################################################################
 
@@ -406,7 +408,7 @@ class BaseAviary(gym.Env):
         self._updateAndStoreKinematicInformation()
         #### Prepare the return values #############################
         obs = self._computeObs()
-        reward = self._computeReward()
+        reward, *self.each_costs = self._computeReward()
         done = self._computeDone()
         info = self._computeInfo()
         #### Advance the step counter ##############################
@@ -480,6 +482,9 @@ class BaseAviary(gym.Env):
 
         """
         return self.DRONE_IDS
+
+    def get_each_costs(self):
+        return self.each_costs
 
     ################################################################################
 
