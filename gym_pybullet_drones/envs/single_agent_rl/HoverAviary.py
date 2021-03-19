@@ -83,7 +83,7 @@ class HoverAviary(BaseSingleAgentAviary):
             gyr = state[13:16]
             gyr_cost = -1 * \
                 np.linalg.norm(np.array([0.0, 0.0, 0.0]) - gyr) ** 2
-            return pos_cost + gyr_cost
+            return pos_cost + gyr_cost * 0.05
         else:
             print('[ERROR] not exsist this reward type in this model')
             ################################################################################

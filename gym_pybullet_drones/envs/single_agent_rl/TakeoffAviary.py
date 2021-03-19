@@ -76,13 +76,14 @@ class TakeoffAviary(BaseSingleAgentAviary):
 
         """
         state = self._getDroneStateVector(0)
+        def_cost = -5 if state[2] < 0.02 else -1 / (10*state[2])
         if self.REW_TYPE == RewardType.DEF:
-            if state[2] < 0.02:
-                return -5
-            else:
-                return -1 / (10*state[2])
+            return def_cost
         elif self.REW_TYPE == RewardType.ORI_1:
-            return 1
+            gyr = state[13:16]
+            gyr_cost = -1 * \
+                np.linalg.norm(np.array([0.0, 0.0, 0.0]) - gyr) ** 2
+            return def_cost + gyr_cost * 0.05
         else:
             print('[ERROR] not exsist this reward type in this model')
     ################################################################################
