@@ -2,24 +2,26 @@ import numpy as np
 from gym import spaces
 
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics, BaseAviary
-from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import ActionType, ObservationType, BaseSingleAgentAviary
+from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import ActionType, ObservationType, BaseSingleAgentAviary, RewardType
+
 
 class TakeoffAviary(BaseSingleAgentAviary):
     """Single agent RL problem: take-off."""
-    
+
     ################################################################################
 
     def __init__(self,
-                 drone_model: DroneModel=DroneModel.CF2X,
+                 drone_model: DroneModel = DroneModel.CF2X,
                  initial_xyzs=None,
                  initial_rpys=None,
-                 physics: Physics=Physics.PYB,
-                 freq: int=240,
-                 aggregate_phy_steps: int=1,
+                 physics: Physics = Physics.PYB,
+                 freq: int = 240,
+                 aggregate_phy_steps: int = 1,
                  gui=False,
-                 record=False, 
-                 obs: ObservationType=ObservationType.KIN,
-                 act: ActionType=ActionType.RPM
+                 record=False,
+                 obs: ObservationType = ObservationType.KIN,
+                 act: ActionType = ActionType.RPM,
+                 rew: RewardType = RewardType.DEF
                  ):
         """Initialization of a single agent RL environment.
 
@@ -58,11 +60,12 @@ class TakeoffAviary(BaseSingleAgentAviary):
                          gui=gui,
                          record=record,
                          obs=obs,
-                         act=act
+                         act=act,
+                         rew=rew
                          )
 
     ################################################################################
-    
+
     def _computeReward(self):
         """Computes the current reward value.
 
@@ -73,13 +76,17 @@ class TakeoffAviary(BaseSingleAgentAviary):
 
         """
         state = self._getDroneStateVector(0)
-        if state[2] < 0.02:
-            return -5
+        if self.REW_TYPE == RewardType.DEF:
+            if state[2] < 0.02:
+                return -5
+            else:
+                return -1 / (10*state[2])
+        elif self.REW_TYPE == RewardType.ORI_1:
+            return 1
         else:
-            return -1 / (10*state[2])
-
+            print('[ERROR] not exsist this reward type in this model')
     ################################################################################
-    
+
     def _computeDone(self):
         """Computes the current done value.
 
@@ -95,7 +102,7 @@ class TakeoffAviary(BaseSingleAgentAviary):
             return False
 
     ################################################################################
-    
+
     def _computeInfo(self):
         """Computes the current info dict(s).
 
@@ -107,10 +114,10 @@ class TakeoffAviary(BaseSingleAgentAviary):
             Dummy value.
 
         """
-        return {"answer": 42} #### Calculated by the Deep Thought supercomputer in 7.5M years
+        return {"answer": 42}  # Calculated by the Deep Thought supercomputer in 7.5M years
 
     ################################################################################
-    
+
     def _clipAndNormalizeState(self,
                                state
                                ):
@@ -127,13 +134,13 @@ class TakeoffAviary(BaseSingleAgentAviary):
             (20,)-shaped array of floats containing the normalized state of a single drone.
 
         """
-        MAX_LIN_VEL_XY = 3 
+        MAX_LIN_VEL_XY = 3
         MAX_LIN_VEL_Z = 1
 
         MAX_XY = MAX_LIN_VEL_XY*self.EPISODE_LEN_SEC
         MAX_Z = MAX_LIN_VEL_Z*self.EPISODE_LEN_SEC
 
-        MAX_PITCH_ROLL = np.pi # Full range
+        MAX_PITCH_ROLL = np.pi  # Full range
 
         clipped_pos_xy = np.clip(state[0:2], -MAX_XY, MAX_XY)
         clipped_pos_z = np.clip(state[2], 0, MAX_Z)
@@ -153,10 +160,11 @@ class TakeoffAviary(BaseSingleAgentAviary):
         normalized_pos_xy = clipped_pos_xy / MAX_XY
         normalized_pos_z = clipped_pos_z / MAX_Z
         normalized_rp = clipped_rp / MAX_PITCH_ROLL
-        normalized_y = state[9] / np.pi # No reason to clip
+        normalized_y = state[9] / np.pi  # No reason to clip
         normalized_vel_xy = clipped_vel_xy / MAX_LIN_VEL_XY
         normalized_vel_z = clipped_vel_z / MAX_LIN_VEL_XY
-        normalized_ang_vel = state[13:16]/np.linalg.norm(state[13:16]) if np.linalg.norm(state[13:16]) != 0 else state[13:16]
+        normalized_ang_vel = state[13:16]/np.linalg.norm(
+            state[13:16]) if np.linalg.norm(state[13:16]) != 0 else state[13:16]
 
         norm_and_clipped = np.hstack([normalized_pos_xy,
                                       normalized_pos_z,
@@ -170,9 +178,9 @@ class TakeoffAviary(BaseSingleAgentAviary):
                                       ]).reshape(20,)
 
         return norm_and_clipped
-    
+
     ################################################################################
-    
+
     def _clipAndNormalizeStateWarning(self,
                                       state,
                                       clipped_pos_xy,
@@ -184,15 +192,20 @@ class TakeoffAviary(BaseSingleAgentAviary):
         """Debugging printouts associated to `_clipAndNormalizeState`.
 
         Print a warning if values in a state vector is out of the clipping range.
-        
+
         """
         if not(clipped_pos_xy == np.array(state[0:2])).all():
-            print("[WARNING] it", self.step_counter, "in TakeoffAviary._clipAndNormalizeState(), clipped xy position [{:.2f} {:.2f}]".format(state[0], state[1]))
+            print("[WARNING] it", self.step_counter,
+                  "in TakeoffAviary._clipAndNormalizeState(), clipped xy position [{:.2f} {:.2f}]".format(state[0], state[1]))
         if not(clipped_pos_z == np.array(state[2])).all():
-            print("[WARNING] it", self.step_counter, "in TakeoffAviary._clipAndNormalizeState(), clipped z position [{:.2f}]".format(state[2]))
+            print("[WARNING] it", self.step_counter,
+                  "in TakeoffAviary._clipAndNormalizeState(), clipped z position [{:.2f}]".format(state[2]))
         if not(clipped_rp == np.array(state[7:9])).all():
-            print("[WARNING] it", self.step_counter, "in TakeoffAviary._clipAndNormalizeState(), clipped roll/pitch [{:.2f} {:.2f}]".format(state[7], state[8]))
+            print("[WARNING] it", self.step_counter,
+                  "in TakeoffAviary._clipAndNormalizeState(), clipped roll/pitch [{:.2f} {:.2f}]".format(state[7], state[8]))
         if not(clipped_vel_xy == np.array(state[10:12])).all():
-            print("[WARNING] it", self.step_counter, "in TakeoffAviary._clipAndNormalizeState(), clipped xy velocity [{:.2f} {:.2f}]".format(state[10], state[11]))
+            print("[WARNING] it", self.step_counter,
+                  "in TakeoffAviary._clipAndNormalizeState(), clipped xy velocity [{:.2f} {:.2f}]".format(state[10], state[11]))
         if not(clipped_vel_z == np.array(state[12])).all():
-            print("[WARNING] it", self.step_counter, "in TakeoffAviary._clipAndNormalizeState(), clipped z velocity [{:.2f}]".format(state[12]))
+            print("[WARNING] it", self.step_counter,
+                  "in TakeoffAviary._clipAndNormalizeState(), clipped z velocity [{:.2f}]".format(state[12]))

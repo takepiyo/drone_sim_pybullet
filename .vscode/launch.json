@@ -9,7 +9,10 @@
             "type": "python",
             "request": "launch",
             "program": "${file}",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "args": [
+                "--exp='./results/save-hover-ppo-kin-one_d_dyn-ori_1-03.19.2021_12.52.07'"
+            ]
         }
     ]
 }

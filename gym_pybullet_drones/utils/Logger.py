@@ -251,7 +251,7 @@ class Logger(object):
             'color', ['r', 'g', 'b', 'y']) + cycler('linestyle', ['-', '--', ':', '-.'])))
         fig, axs = plt.subplots(10, 2)
         t = np.arange(
-            0, self.timestamps.shape[1]/self.LOGGING_FREQ_HZ, 1/self.LOGGING_FREQ_HZ)[:-1]
+            0, self.timestamps.shape[1]/self.LOGGING_FREQ_HZ, 1/self.LOGGING_FREQ_HZ)
 
         #### Column ################################################
         col = 0

@@ -46,7 +46,7 @@ from gym_pybullet_drones.envs.single_agent_rl.TakeoffAviary import TakeoffAviary
 from gym_pybullet_drones.envs.single_agent_rl.HoverAviary import HoverAviary
 from gym_pybullet_drones.envs.single_agent_rl.FlyThruGateAviary import FlyThruGateAviary
 from gym_pybullet_drones.envs.single_agent_rl.TuneAviary import TuneAviary
-from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import ActionType, ObservationType
+from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import ActionType, ObservationType, RewardType
 
 import shared_constants
 
@@ -67,13 +67,15 @@ if __name__ == "__main__":
                         help='Help (default: ..)', metavar='')
     parser.add_argument('--act',        default='one_d_rpm',  type=ActionType,
                         help='Help (default: ..)', metavar='')
+    parser.add_argument('--rew',        default='def',  type=RewardType,
+                        help='Help (default: ..)', metavar='')
     parser.add_argument('--cpu',        default='1',          type=int,
                         help='Help (default: ..)', metavar='')
     ARGS = parser.parse_args()
 
     #### Save directory ########################################
     filename = os.path.dirname(os.path.abspath(__file__))+'/results/save-'+ARGS.env+'-'+ARGS.algo + \
-        '-'+ARGS.obs.value+'-'+ARGS.act.value+'-' + \
+        '-'+ARGS.obs.value+'-'+ARGS.act.value+'-' + ARGS.rew.value + '-' + \
         datetime.now().strftime("%m.%d.%Y_%H.%M.%S")
     if not os.path.exists(filename):
         os.makedirs(filename+'/')
@@ -107,7 +109,7 @@ if __name__ == "__main__":
 
     env_name = ARGS.env+"-aviary-v0"
     sa_env_kwargs = dict(
-        aggregate_phy_steps=shared_constants.AGGR_PHY_STEPS, obs=ARGS.obs, act=ARGS.act)
+        aggregate_phy_steps=shared_constants.AGGR_PHY_STEPS, obs=ARGS.obs, act=ARGS.act, rew=ARGS.rew)
     # train_env = gym.make(env_name, aggregate_phy_steps=shared_constants.AGGR_PHY_STEPS, obs=ARGS.obs, act=ARGS.act) # single environment instead of a vectorized one
     if env_name == "takeoff-aviary-v0":
         train_env = make_vec_env(TakeoffAviary,
