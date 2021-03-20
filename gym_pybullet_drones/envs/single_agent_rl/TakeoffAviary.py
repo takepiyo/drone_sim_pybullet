@@ -106,8 +106,10 @@ class TakeoffAviary(BaseSingleAgentAviary):
                 height_cost = -5.0
             elif state[2] < 0.5:
                 height_cost = -1 / (10*state[2])
-            else:
+            elif state[2] < 1.0:
                 height_cost = 0.0
+            else:
+                height_cost = -1 * state[2] * state[2] + 1.0
             self.each_costs["height_cost"] += height_cost
             gyr_cost = -1 * \
                 np.clip(
