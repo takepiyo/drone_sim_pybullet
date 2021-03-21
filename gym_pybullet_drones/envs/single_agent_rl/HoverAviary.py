@@ -1,6 +1,8 @@
 import numpy as np
 from gym import spaces
 
+import math
+
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics, BaseAviary
 from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import ActionType, ObservationType, BaseSingleAgentAviary, RewardType
 
@@ -21,7 +23,8 @@ class HoverAviary(BaseSingleAgentAviary):
                  record=False,
                  obs: ObservationType = ObservationType.KIN,
                  act: ActionType = ActionType.RPM,
-                 rew: RewardType = RewardType.DEF
+                 rew: RewardType = RewardType.DEF,
+                 random_init: bool = False
                  ):
         """Initialization of a single agent RL environment.
 
@@ -61,8 +64,10 @@ class HoverAviary(BaseSingleAgentAviary):
                          record=record,
                          obs=obs,
                          act=act,
-                         rew=rew
+                         rew=rew,
+                         random_init=random_init
                          )
+        self.pre_act = np.zeros((1, 4))
     ################################################################################
 
     def _computeReward(self):
@@ -77,6 +82,7 @@ class HoverAviary(BaseSingleAgentAviary):
         state = self._getDroneStateVector(0)
         def_cost = -1 * np.linalg.norm(np.array([0, 0, 1])-state[0:3])**2
         if self.REW_TYPE == RewardType.DEF:
+            def_cost = -1 * np.linalg.norm(np.array([0, 0, 0.5])-state[0:3])**2
             return def_cost
         elif self.REW_TYPE == RewardType.ORI_1:
             gyr = state[13:16]
@@ -92,6 +98,15 @@ class HoverAviary(BaseSingleAgentAviary):
                     (np.linalg.norm(np.array([0.0, 0.0, 0.0]) - gyr) ** 2) / 3.0, 0.0, 1.0)
             self.each_costs["gyr_cost"] += gyr_cost
             return def_cost + gyr_cost
+        elif self.REW_TYPE == RewardType.ORI_3:
+            rew = 0.0
+            p = (np.array([0.0, 0.0, 0.0]), np.array(
+                [20.0, 20.0, 10.0]), 0.8, 0.03)
+            rew += np.sum(np.tanh(1 - ((self.TAEGET_POS -
+                                        state[0:3]) ** 2) * p[0] - (state[3:6]) ** 2 * p[1])) - np.linalg.norm(state[16:20] - self.pre_act) ** 2 * p[2] - np.linalg.norm(state[16:20]) ** 2 * p[3]
+            if rew < 0:
+                rew = 0
+            return rew
         else:
             print('[ERROR] not exsist this reward type in this model')
             ################################################################################
@@ -105,7 +120,10 @@ class HoverAviary(BaseSingleAgentAviary):
             Whether the current episode is done.
 
         """
-        if self.step_counter/self.SIM_FREQ > self.EPISODE_LEN_SEC:
+        state = self._getDroneStateVector(0)
+        if self.step_counter / self.SIM_FREQ > self.EPISODE_LEN_SEC:
+            return True
+        elif np.any(np.abs(state[3:6]) > math.pi / 2) or np.any(np.abs(state[0:2]) > 3.0) or np.any(np.abs(state[2]) > 3.0) or np.any(np.abs(state[2]) < 0.0):
             return True
         else:
             return False

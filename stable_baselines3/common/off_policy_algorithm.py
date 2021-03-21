@@ -157,10 +157,12 @@ class OffPolicyAlgorithm(BaseAlgorithm):
             try:
                 train_freq = (train_freq[0], TrainFrequencyUnit(train_freq[1]))
             except ValueError:
-                raise ValueError(f"The unit of the `train_freq` must be either 'step' or 'episode' not '{train_freq[1]}'!")
+                raise ValueError(
+                    f"The unit of the `train_freq` must be either 'step' or 'episode' not '{train_freq[1]}'!")
 
             if not isinstance(train_freq[0], int):
-                raise ValueError(f"The frequency of `train_freq` must be an integer and not {train_freq[0]}")
+                raise ValueError(
+                    f"The frequency of `train_freq` must be an integer and not {train_freq[0]}")
 
             self.train_freq = TrainFreq(*train_freq)
 
@@ -202,7 +204,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         :param path: Path to the pickled replay buffer.
         """
         self.replay_buffer = load_from_pkl(path, self.verbose)
-        assert isinstance(self.replay_buffer, ReplayBuffer), "The replay buffer must inherit from ReplayBuffer class"
+        assert isinstance(
+            self.replay_buffer, ReplayBuffer), "The replay buffer must inherit from ReplayBuffer class"
 
     def _setup_learn(
         self,
@@ -280,7 +283,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                 # If no `gradient_steps` is specified,
                 # do as many gradients steps as steps performed during the rollout
                 gradient_steps = self.gradient_steps if self.gradient_steps > 0 else rollout.episode_timesteps
-                self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
+                self.train(batch_size=self.batch_size,
+                           gradient_steps=gradient_steps)
 
         callback.on_training_end()
 
@@ -318,7 +322,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
             # Note: when using continuous actions,
             # we assume that the policy uses tanh to scale the action
             # We use non-deterministic action in the case of SAC, for TD3, it does not matter
-            unscaled_action, _ = self.predict(self._last_obs, deterministic=False)
+            unscaled_action, _ = self.predict(
+                self._last_obs, deterministic=False)
 
         # Rescale the action from [low, high] to [-1, 1]
         if isinstance(self.action_space, gym.spaces.Box):
@@ -326,7 +331,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
 
             # Add noise to the action (improve exploration)
             if action_noise is not None:
-                scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
+                scaled_action = np.clip(
+                    scaled_action + action_noise(), -0.5, 0.5)
 
             # We store the scaled action in the buffer
             buffer_action = scaled_action
@@ -342,18 +348,24 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         Write log.
         """
         fps = int(self.num_timesteps / (time.time() - self.start_time))
-        logger.record("time/episodes", self._episode_num, exclude="tensorboard")
+        logger.record("time/episodes", self._episode_num,
+                      exclude="tensorboard")
         if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
-            logger.record("rollout/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
-            logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
+            logger.record("rollout/ep_rew_mean",
+                          safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
+            logger.record("rollout/ep_len_mean",
+                          safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
         logger.record("time/fps", fps)
-        logger.record("time/time_elapsed", int(time.time() - self.start_time), exclude="tensorboard")
-        logger.record("time/total timesteps", self.num_timesteps, exclude="tensorboard")
+        logger.record("time/time_elapsed", int(time.time() -
+                                               self.start_time), exclude="tensorboard")
+        logger.record("time/total timesteps",
+                      self.num_timesteps, exclude="tensorboard")
         if self.use_sde:
             logger.record("train/std", (self.actor.get_std()).mean().item())
 
         if len(self.ep_success_buffer) > 0:
-            logger.record("rollout/success rate", safe_mean(self.ep_success_buffer))
+            logger.record("rollout/success rate",
+                          safe_mean(self.ep_success_buffer))
         # Pass the number of timesteps for tensorboard
         logger.dump(step=self.num_timesteps)
 
@@ -406,7 +418,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         else:
             next_obs = new_obs_
 
-        replay_buffer.add(self._last_original_obs, next_obs, buffer_action, reward_, done)
+        replay_buffer.add(self._last_original_obs, next_obs,
+                          buffer_action, reward_, done)
 
         self._last_obs = new_obs
         # Save the unnormalized observation
@@ -466,7 +479,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                     self.actor.reset_noise()
 
                 # Select action randomly or according to policy
-                action, buffer_action = self._sample_action(learning_starts, action_noise)
+                action, buffer_action = self._sample_action(
+                    learning_starts, action_noise)
 
                 # Rescale and perform action
                 new_obs, reward, done, infos = env.step(action)
@@ -487,9 +501,11 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                 self._update_info_buffer(infos, done)
 
                 # Store data in replay buffer (normalized action and unnormalized observation)
-                self._store_transition(replay_buffer, buffer_action, new_obs, reward, done, infos)
+                self._store_transition(
+                    replay_buffer, buffer_action, new_obs, reward, done, infos)
 
-                self._update_current_progress_remaining(self.num_timesteps, self._total_timesteps)
+                self._update_current_progress_remaining(
+                    self.num_timesteps, self._total_timesteps)
 
                 # For DQN, check if the target network should be updated
                 # and update the exploration schedule
@@ -513,7 +529,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                 if log_interval is not None and self._episode_num % log_interval == 0:
                     self._dump_logs()
 
-        mean_reward = np.mean(episode_rewards) if num_collected_episodes > 0 else 0.0
+        mean_reward = np.mean(
+            episode_rewards) if num_collected_episodes > 0 else 0.0
 
         callback.on_rollout_end()
 

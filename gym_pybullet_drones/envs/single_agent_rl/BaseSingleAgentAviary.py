@@ -31,6 +31,8 @@ class ActionType(Enum):
 class ObservationType(Enum):
     """Observation type enumeration class."""
     KIN = "kin"     # Kinematic information (pose, linear and angular velocities)
+    # Kinematic information (pose, linear and angular velocities)
+    KIN_W_DELTA = "kin_w_delta"
     RGB = "rgb"     # RGB camera capture in each drone's POV
 
 ################################################################################
@@ -42,6 +44,7 @@ class RewardType(Enum):
     ORI_1 = "ori_1"     # original reward func 1
     ORI_2 = "ori_2"     # original reward func 2
     ORI_3 = "ori_3"     # original reward func 3
+    ORI_4 = "ori_4"     # original reward func 4
 
 ################################################################################
 
@@ -62,7 +65,8 @@ class BaseSingleAgentAviary(BaseAviary):
                  record=False,
                  obs: ObservationType = ObservationType.KIN,
                  act: ActionType = ActionType.RPM,
-                 rew: RewardType = RewardType.DEF
+                 rew: RewardType = RewardType.DEF,
+                 random_init: bool = False
                  ):
         """Initialization of a generic single agent RL environment.
 
@@ -101,7 +105,8 @@ class BaseSingleAgentAviary(BaseAviary):
         self.OBS_TYPE = obs
         self.ACT_TYPE = act
         self.REW_TYPE = rew
-        self.EPISODE_LEN_SEC = 5
+        self.EPISODE_LEN_SEC = 10
+        self.TAEGET_POS = np.array([0, 0, 0.5], dtype=np.float32)
         #### Create integrated controllers #########################
         if act in [ActionType.PID, ActionType.VEL, ActionType.TUN, ActionType.ONE_D_PID]:
             os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
@@ -357,6 +362,12 @@ class BaseSingleAgentAviary(BaseAviary):
                               dtype=np.float32
                               )
             ############################################################
+        elif self.OBS_TYPE == ObservationType.KIN_W_DELTA:
+            return spaces.Box(low=np.array([-1, -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]),
+                              high=np.array(
+                                  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
+                              dtype=np.float32
+                              )
         else:
             print("[ERROR] in BaseSingleAgentAviary._observationSpace()")
 
@@ -394,6 +405,10 @@ class BaseSingleAgentAviary(BaseAviary):
             # OBS SPACE OF SIZE 12
             return np.hstack([obs[0:3], obs[7:10], obs[10:13], obs[13:16]]).reshape(12,)
             ############################################################
+        elif self.OBS_TYPE == ObservationType.KIN_W_DELTA:
+            obs = self._clipAndNormalizeState(self._getDroneStateVector(0))
+            delta = self.TAEGET_POS - obs[0:3]
+            return np.hstack([obs[0:3], obs[7:10], obs[10:13], obs[13:16], delta]).reshape(15,)
         else:
             print("[ERROR] in BaseSingleAgentAviary._computeObs()")
 

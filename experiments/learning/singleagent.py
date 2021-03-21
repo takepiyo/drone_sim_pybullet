@@ -38,6 +38,7 @@ from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecTransposeImage
 from stable_baselines3.common.cmd_util import make_vec_env
 from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.noise import NormalActionNoise
 import torch
 import gym
 import numpy as np
@@ -52,7 +53,7 @@ sys.path.append('stable_baselines3/')
 
 
 # Upperbound: rewards are always negative, but non-zero
-EPISODE_REWARD_THRESHOLD = -0
+EPISODE_REWARD_THRESHOLD = 10000
 """float: Reward threshold to halt the script."""
 
 if __name__ == "__main__":
@@ -110,7 +111,7 @@ if __name__ == "__main__":
 
     env_name = ARGS.env+"-aviary-v0"
     sa_env_kwargs = dict(
-        aggregate_phy_steps=shared_constants.AGGR_PHY_STEPS, obs=ARGS.obs, act=ARGS.act, rew=ARGS.rew)
+        aggregate_phy_steps=shared_constants.AGGR_PHY_STEPS, obs=ARGS.obs, act=ARGS.act, rew=ARGS.rew, freq=50, random_init=True)
     # train_env = gym.make(env_name, aggregate_phy_steps=shared_constants.AGGR_PHY_STEPS, obs=ARGS.obs, act=ARGS.act) # single environment instead of a vectorized one
     if env_name == "takeoff-aviary-v0":
         train_env = make_vec_env(TakeoffAviary,
@@ -172,8 +173,11 @@ if __name__ == "__main__":
 
     #### Off-policy algorithms #################################
     offpolicy_kwargs = dict(activation_fn=torch.nn.ReLU,
-                            net_arch=[512, 512, 256, 128]
+                            # net_arch=[512, 512, 256, 128]
+                            net_arch=[400, 300]
                             )  # or None # or dict(net_arch=dict(qf=[256, 128, 64, 32], pi=[256, 128, 64, 32]))
+    action_noise = NormalActionNoise(np.array([0.0]), np.array([0.2]))
+
     if ARGS.algo == 'sac':
         model = SAC(sacMlpPolicy,
                     train_env,
@@ -191,13 +195,15 @@ if __name__ == "__main__":
                     train_env,
                     policy_kwargs=offpolicy_kwargs,
                     tensorboard_log=filename+'/tb/',
-                    verbose=1
-                    ) if ARGS.obs == ObservationType.KIN else TD3(td3ddpgCnnPolicy,
-                                                                  train_env,
-                                                                  policy_kwargs=offpolicy_kwargs,
-                                                                  tensorboard_log=filename+'/tb/',
-                                                                  verbose=1
-                                                                  )
+                    verbose=1,
+                    learning_rate=7e-4,
+                    action_noise=action_noise
+                    ) if ARGS.obs == ObservationType.KIN or ARGS.obs == ObservationType.KIN_W_DELTA else TD3(td3ddpgCnnPolicy,
+                                                                                                             train_env,
+                                                                                                             policy_kwargs=offpolicy_kwargs,
+                                                                                                             tensorboard_log=filename+'/tb/',
+                                                                                                             verbose=1
+                                                                                                             )
     if ARGS.algo == 'ddpg':
         model = DDPG(td3ddpgMlpPolicy,
                      train_env,
@@ -212,7 +218,7 @@ if __name__ == "__main__":
                                                                     )
 
     #### Create eveluation environment #########################
-    if ARGS.obs == ObservationType.KIN:
+    if ARGS.obs == ObservationType.KIN or ARGS.obs == ObservationType.KIN_W_DELTA:
         eval_env = gym.make(env_name,
                             aggregate_phy_steps=shared_constants.AGGR_PHY_STEPS,
                             obs=ARGS.obs,

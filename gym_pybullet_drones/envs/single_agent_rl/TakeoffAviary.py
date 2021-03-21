@@ -21,7 +21,8 @@ class TakeoffAviary(BaseSingleAgentAviary):
                  record=False,
                  obs: ObservationType = ObservationType.KIN,
                  act: ActionType = ActionType.RPM,
-                 rew: RewardType = RewardType.DEF
+                 rew: RewardType = RewardType.DEF,
+                 random_init: bool = False
                  ):
         """Initialization of a single agent RL environment.
 
@@ -61,7 +62,8 @@ class TakeoffAviary(BaseSingleAgentAviary):
                          record=record,
                          obs=obs,
                          act=act,
-                         rew=rew
+                         rew=rew,
+                         random_init=random_init
                          )
         self.pre_act = np.zeros((1, 4))
 

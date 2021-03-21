@@ -1,3 +1,4 @@
+import math
 import gym
 import pybullet_data
 import pybullet as p
@@ -71,7 +72,8 @@ class BaseAviary(gym.Env):
                  obstacles=False,
                  user_debug_gui=True,
                  vision_attributes=False,
-                 dynamics_attributes=False
+                 dynamics_attributes=False,
+                 random_init: bool = False
                  ):
         """Initialization of a generic aviary environment.
 
@@ -243,6 +245,7 @@ class BaseAviary(gym.Env):
                                                             farVal=1000.0
                                                             )
         #### Set initial poses #####################################
+        self.random_init = random_init
         if initial_xyzs is None:
             self.INIT_XYZS = np.vstack([np.array([x*4*self.L for x in range(self.NUM_DRONES)]),
                                         np.array(
@@ -507,11 +510,20 @@ class BaseAviary(gym.Env):
         self.last_clipped_action = np.zeros((self.NUM_DRONES, 4))
         self.gui_input = np.zeros(4)
         #### Initialize the drones kinemaatic information ##########
-        self.pos = np.zeros((self.NUM_DRONES, 3))
-        self.quat = np.zeros((self.NUM_DRONES, 4))
-        self.rpy = np.zeros((self.NUM_DRONES, 3))
-        self.vel = np.zeros((self.NUM_DRONES, 3))
-        self.ang_v = np.zeros((self.NUM_DRONES, 3))
+        if self.random_init:
+            self.pos = np.zeros((self.NUM_DRONES, 3))
+            # self.quat = np.zeros((self.NUM_DRONES, 4))
+            # self.rpy = np.zeros((self.NUM_DRONES, 3))
+            self.rpy = np.rand(self.NUM_DRONES, 3) * 80 * math.pi / 180
+            self.quat = p.getQuaternionFromEuler(self.rpy),
+            self.vel = np.zeros((self.NUM_DRONES, 3))
+            self.ang_v = np.zeros((self.NUM_DRONES, 3))
+        else:
+            self.pos = np.zeros((self.NUM_DRONES, 3))
+            self.quat = np.zeros((self.NUM_DRONES, 4))
+            self.rpy = np.zeros((self.NUM_DRONES, 3))
+            self.vel = np.zeros((self.NUM_DRONES, 3))
+            self.ang_v = np.zeros((self.NUM_DRONES, 3))
         if self.PHYSICS == Physics.DYN:
             self.rpy_rates = np.zeros((self.NUM_DRONES, 3))
         #### Set PyBullet's parameters #############################
